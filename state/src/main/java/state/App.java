@@ -2,6 +2,8 @@ package state;
 
 import state.domain.Order;
 import state.event.OrderEvent;
+import state.state.OrderState;
+import state.state.OrderStateManager;
 
 import java.util.List;
 import java.util.Random;
@@ -13,8 +15,6 @@ public class App {
     public static void main(String[] args) {
         Random random = new Random();
 
-        OrderEvent event = new OrderEvent();
-
         List<Order.Item> items = Stream.iterate(0, i -> i + 1)
                 .limit(10)
                 .map(e -> new Order.Item()
@@ -24,9 +24,12 @@ public class App {
                         .price(random.nextFloat() * 100))
                 .collect(Collectors.toList());
 
-        Order order = event.create(items);
+//        OrderState event = new OrderEvent();
+        OrderState event = new OrderStateManager();
+
+        Order order = event.create(items, "Anonymous");
         event.paid(order);
-        event.inCancel(order);
+//        event.inCancel(order);
 //        event.cancelled(order);
         event.readyToShip(order);
         event.shipped(order);
@@ -35,4 +38,5 @@ public class App {
 
         System.out.println(order);
     }
+
 }

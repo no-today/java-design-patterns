@@ -20,6 +20,11 @@ public class Order {
     private String id;
 
     /**
+     * 买家
+     */
+    private String uid;
+
+    /**
      * 状态
      */
     private OrderStatus status;

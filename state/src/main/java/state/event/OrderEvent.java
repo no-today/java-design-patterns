@@ -2,6 +2,7 @@ package state.event;
 
 import state.domain.Order;
 import state.domain.enumeration.OrderStatus;
+import state.state.OrderState;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,10 +12,18 @@ import java.util.List;
  * <p>
  * if-else 到代码里
  */
-public class OrderEvent {
+public class OrderEvent implements OrderState {
 
-    public Order create(List<Order.Item> items) {
+    @Override
+    public OrderStatus currentState() {
+        return null;
+    }
+
+    @Override
+    public Order create(List<Order.Item> items, String uid) {
+        // init order
         Order order = new Order()
+                .uid(uid)
                 .status(OrderStatus.UNPAID)
                 .createdTime(Instant.now())
                 .items(items)
@@ -27,6 +36,7 @@ public class OrderEvent {
         return order;
     }
 
+    @Override
     public void paid(Order order) {
         if (!OrderStatus.UNPAID.equals(order.status())) {
             throw new IllegalStateException("无法修改订单状态为: " + OrderStatus.READY_TO_SHIP + "，当前订单状态为: " + order.status());
@@ -39,6 +49,7 @@ public class OrderEvent {
         System.out.println("买家以付款, 等待卖家备货至平台仓库");
     }
 
+    @Override
     public void readyToShip(Order order) {
         if (OrderStatus.COMPLETED.equals(order.status())) {
             throw new IllegalStateException("该订单以取消，无法放入平台仓库");
@@ -47,6 +58,7 @@ public class OrderEvent {
         System.out.println("货物以入平台仓库");
     }
 
+    @Override
     public void shipped(Order order) {
         if (OrderStatus.IN_CANCEL.equals(order.status())) {
             System.out.println("货物已经开始运输，拦截取消订单失败");
@@ -61,6 +73,7 @@ public class OrderEvent {
         System.out.println("货物开始运输, 等待买家收货");
     }
 
+    @Override
     public void toConfirmReceive(Order order) {
         if (!OrderStatus.SHIPPED.equals(order.status())) {
             throw new IllegalStateException("无法修改订单状态为: " + OrderStatus.TO_CONFIRM_RECEIVE + "，当前订单状态为: " + order.status());
@@ -71,10 +84,9 @@ public class OrderEvent {
         // write to db
 
         System.out.println("买家确认收货, 订单流程结束");
-
-        this.completed(order);
     }
 
+    @Override
     public void inCancel(Order order) {
         if (OrderStatus.COMPLETED.equals(order.status())) {
             throw new IllegalStateException("无法修改订单状态为: " + OrderStatus.TO_CONFIRM_RECEIVE + "，当前订单状态为: " + order.status());
@@ -87,6 +99,10 @@ public class OrderEvent {
         if (OrderStatus.UNPAID.equals(order.status())) {
             order.status(OrderStatus.IN_CANCEL);
 
+            // write to db
+
+            System.out.println("买家申请取消订单");
+
             this.cancelled(order);
         } else {
             // 已进入物流运输环节则需要卖家|平台审批
@@ -96,13 +112,12 @@ public class OrderEvent {
              * 同未收到货，申请退货流程类似
              * 尝试拦截订单，已经发出去了的，通常都是到达之后再发一个快递退回来.
              */
+
+            // write to db
         }
-
-        // write to db
-
-        System.out.println("买家申请取消订单");
     }
 
+    @Override
     public void cancelled(Order order) {
         if (!OrderStatus.IN_CANCEL.equals(order.status())) {
             throw new IllegalStateException("无法修改订单状态为: " + OrderStatus.TO_CONFIRM_RECEIVE + "，当前订单状态为: " + order.status());
@@ -113,10 +128,9 @@ public class OrderEvent {
         // write to db
 
         System.out.println("取消订单申请通过");
-
-        this.completed(order);
     }
 
+    @Override
     public void toReturn(Order order) {
         if (!OrderStatus.COMPLETED.equals(order.status())) {
             throw new IllegalStateException("无法修改订单状态为: " + OrderStatus.TO_CONFIRM_RECEIVE + "，当前订单状态为: " + order.status());
@@ -131,6 +145,7 @@ public class OrderEvent {
         System.out.println("进入退货流程");
     }
 
+    @Override
     public void completed(Order order) {
         order.status(OrderStatus.COMPLETED);
 
